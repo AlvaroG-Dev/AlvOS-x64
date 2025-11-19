@@ -120,7 +120,7 @@ El sistema arranca y pregunta si deseas ejecutar la suite de pruebas.
 
 **Presiona n para ir directamente al shell:**
 
-``text
+```bash
 Sistema listo. Iniciando shell...
 os> 
 Comandos del Shell
@@ -134,11 +134,11 @@ uptime - Muestra segundos transcurridos desde el boot
 
 halt - Detiene el sistema de forma segura
 
-´´
+```
 
 ## Ejemplos de Uso
 
-``text
+```bash
 os> echo Hola Mundo!
 Hola Mundo!
 
@@ -154,7 +154,7 @@ Comandos disponibles:
   echo    - Repite el texto
   uptime  - Muestra tiempo activo
   halt    - Detiene el sistema
-``
+```
 
 ### Suite de Pruebas
 La suite incluye:
