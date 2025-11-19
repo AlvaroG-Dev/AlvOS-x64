@@ -241,7 +241,7 @@ Servicing hardware INT=0x21    # Keyboard (IRQ1)
 - [x] Drivers básicos (Timer, Teclado, VGA)
 - [x] Funciones de utilidad
 - [x] Sistema de testing
-- [ ] Shell minimalista (próximo)
+- [x] Shell minimalista (próximo)
 - [ ] Gestión de memoria básica (próximo)
 
 ### Fase 2: Expansión (Planeado)
