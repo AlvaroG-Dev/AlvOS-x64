@@ -17,6 +17,10 @@ Un kernel básico de 64 bits desarrollado desde cero (bare-metal) para arquitect
   - Terminal VGA (80x25) con colores y scroll
   - Timer PIT (Programmable Interval Timer) a 100Hz
   - Teclado PS/2 con buffer circular
+- **Shell Minimalista**
+  - Comandos: help, clear, echo, uptime, halt
+  - Parser de argumentos básico
+  - Prompt interactivo con colores
 - **Utilidades**
   - Funciones de string (strcmp, strcpy, memcpy, etc.)
   - Sistema de pánico para errores fatales
@@ -83,19 +87,23 @@ make clean
 ```
 .
 ├── boot.asm            # Bootloader (32→64 bit, paginación)
+├── constants.h         # Definiciones Generales
+├── execption_test.c/h  # Tests de execpciones del CPU
 ├── interrupts.asm      # Stubs de ISRs/IRQs
-├── idt.asm             # Carga de IDT
-├── kernel.c            # Punto de entrada del kernel
-├── terminal.c/h        # Driver VGA text mode
-├── isr.c/h             # Handlers de interrupciones
-├── timer.c/h           # Driver PIT timer
-├── keyboard.c/h        # Driver de teclado PS/2
-├── string.c/h          # Funciones de string/memoria
-├── panic.c/h           # Sistema de pánico
-├── test_suite.c/h      # Suite de pruebas
-├── linker.ld           # Linker script
-├── Makefile            # Sistema de construcción
-└── README.md           # Este archivo
+├── idt.asm            # Carga de IDT
+├── kernel.c           # Punto de entrada del kernel
+├── terminal.c/h       # Driver VGA text mode
+├── isr.c/h            # Handlers de interrupciones
+├── timer.c/h          # Driver PIT timer
+├── keyboard.c/h       # Driver de teclado PS/2
+├── shell.c/h          # Shell minimalista
+├── string.c/h         # Funciones de string/memoria
+├── panic.c/h          # Sistema de pánico
+├── test_suite.c/h     # Suite de pruebas
+├── linker.ld          # Linker script
+├── Makefile           # Sistema de construcción
+├── README.md          # Este archivo
+├── grub.cfg            # Menuentry para GRUB
 ```
 
 ## 🎯 Uso
@@ -108,22 +116,56 @@ El sistema arranca y pregunta si deseas ejecutar la suite de pruebas.
 - Tests del teclado (interactivos)
 - Tests del terminal
 - Verificación de colores y scroll
+- Excepciones del CPU
 
-**Presiona `n` para modo normal:**
-- Puedes escribir libremente
-- El sistema muestra los ticks del timer
-- Todo lo que escribas aparecerá en pantalla
+**Presiona n para ir directamente al shell:**
+
+``text
+Sistema listo. Iniciando shell...
+os> 
+Comandos del Shell
+help - Muestra lista de comandos disponibles
+
+clear - Limpia la pantalla
+
+echo [texto] - Repite el texto ingresado
+
+uptime - Muestra segundos transcurridos desde el boot
+
+halt - Detiene el sistema de forma segura
+
+´´
+
+## Ejemplos de Uso
+
+``text
+os> echo Hola Mundo!
+Hola Mundo!
+
+os> uptime
+Tiempo activo: 125 segundos
+
+os> clear
+
+os> help
+Comandos disponibles:
+  help    - Muestra esta ayuda
+  clear   - Limpia la pantalla  
+  echo    - Repite el texto
+  uptime  - Muestra tiempo activo
+  halt    - Detiene el sistema
+``
 
 ### Suite de Pruebas
 La suite incluye:
 1. ✅ **Timer básico** - Verifica conteo de 3 segundos
-2. ✅ **Timer overflow** - Verifica que no hay overflow
-3. ✅ **Teclado minúsculas** - Test interactivo
-4. ✅ **Teclado Shift** - Test interactivo  
-5. ✅ **Teclado números** - Test interactivo
-6. ✅ **Backspace** - Verificación visual
-7. ✅ **Colores del terminal** - Verificación visual
-8. ✅ **Scroll del terminal** - Verificación visual
+2. ✅ **Teclado minúsculas** - Test interactivo
+3. ✅ **Teclado Shift** - Test interactivo  
+4. ✅ **Teclado números** - Test interactivo
+5. ✅ **Backspace** - Verificación visual
+6. ✅ **Colores del terminal** - Verificación visual
+7. ✅ **Scroll del terminal** - Verificación visual
+8. ✅ **Excepciones del CPU** - Verificación visual por pantalla de PANIC
 
 ## 🔧 Características Técnicas
 
@@ -139,6 +181,7 @@ La suite incluye:
 - Handlers para todas las excepciones del CPU
 - PIC remapeado (IRQ 0-7 → INT 32-39, IRQ 8-15 → INT 40-47)
 - EOI (End of Interrupt) correcto
+- Pantalla de PANIC
 
 ### Timer
 - Frecuencia: 100Hz (10ms por tick)
@@ -156,6 +199,12 @@ La suite incluye:
 - 16 colores
 - Scroll automático
 - Soporte para backspace y newline
+
+### Shell
+- Buffer de entrada de 256 caracteres
+- Soporte para backspace en tiempo real
+- Parser de argumentos básico
+- Prompt con colores personalizables
 
 ## 🐛 Debugging
 
@@ -216,8 +265,6 @@ Servicing hardware INT=0x21    # Keyboard (IRQ1)
 ## 📝 Notas
 
 - Este es un proyecto educativo
-- El código prioriza claridad sobre eficiencia
-- Cada módulo está bien comentado
 - Diseñado para aprender desarrollo de OS
 
 ## 🤝 Contribuciones
