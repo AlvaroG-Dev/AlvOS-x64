@@ -257,6 +257,8 @@ void isr_handler(registers_t *regs) {
     }
 }
 
+
+
 // Handlers externos
 extern void timer_handler(void);
 extern void keyboard_handler(void);

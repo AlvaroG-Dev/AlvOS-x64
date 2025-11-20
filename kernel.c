@@ -246,6 +246,7 @@ void kernel_main(uint32_t magic, uint32_t multiboot_info) {
     
     // Inicializar PMM con memoria real
     pmm_init(memory_base, memory_size);
+    
     heap_init();
     terminal_writestring("[OK] Heap del kernel inicializado\n");
     // Inicializar IDT
@@ -267,6 +268,7 @@ void kernel_main(uint32_t magic, uint32_t multiboot_info) {
     keyboard_install();
     terminal_writestring("[OK] Teclado PS/2 inicializado\n");
     
+    kmalloc(1024); // Prueba rápida de kmalloc
     // Inicializar shell
     shell_init();
     
