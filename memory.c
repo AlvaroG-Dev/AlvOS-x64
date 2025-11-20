@@ -1,8 +1,8 @@
-// memory.c - Gestión de memoria real usando Multiboot2
+// memory.c - Gestión de memoria real usando Multiboot2 (CORREGIDO)
 #include "memory.h"
 #include "terminal.h"
 #include "string.h"
-#include "multiboot.h"
+#include "multiboot_header.h"
 
 // Información global de memoria
 static memory_info_t memory_info;
@@ -17,28 +17,39 @@ static uint64_t pmm_memory_size = 0;
 
 // ========== DETECCIÓN DE MEMORIA ==========
 
-// Obtener información de memoria de Multiboot2
-void memory_detect(uint64_t multiboot_info) {
+// Obtener información de memoria de Multiboot2 - CORREGIDO para uint32_t
+void memory_detect(uint32_t multiboot_info) {
     // Limpiar estructura
     memory_info.count = 0;
     memory_info.total_memory = 0;
     memory_info.available_memory = 0;
     
     if (multiboot_info == 0) {
-        terminal_writestring("❌ No hay información Multiboot2 disponible\n");
+        terminal_writestring("No hay información Multiboot2 disponible\n");
         return;
     }
     
-    // Verificar magic number
-    uint32_t magic = *(uint32_t*)multiboot_info;
-    if (magic != MULTIBOOT2_BOOTLOADER_MAGIC) {
-        terminal_writestring("❌ Magic number de Multiboot2 incorrecto\n");
+    // Verificar alineación (como en el ejemplo oficial)
+    if (multiboot_info & 7) {
+        terminal_writestring("Puntero Multiboot no alineado: 0x");
+        print_hex(multiboot_info);
+        terminal_writestring("\n");
         return;
     }
     
-    // El puntero de Multiboot2 apunta al inicio de la estructura
-    uint32_t total_size = *(uint32_t*)multiboot_info;
+    // El puntero es de 32-bit, accedemos directamente
+    uint32_t* mbi_ptr = (uint32_t*)multiboot_info;
+    
+    // Tamaño total de la estructura
+    uint32_t total_size = mbi_ptr[0];
+    terminal_writestring("Tamaño estructura Multiboot2: ");
+    print_dec(total_size);
+    terminal_writestring(" bytes\n");
+    
+    // Puntero al primer tag (desplazamiento 8 bytes desde el inicio)
     struct multiboot_tag* tag = (struct multiboot_tag*)(multiboot_info + 8);
+    
+    terminal_writestring("Analizando información Multiboot2...\n");
     
     while (tag->type != MULTIBOOT_TAG_TYPE_END && 
            (uint8_t*)tag < (uint8_t*)multiboot_info + total_size) {
@@ -55,7 +66,7 @@ void memory_detect(uint64_t multiboot_info) {
                 memory_info.total_memory = low_memory + high_memory;
                 memory_info.available_memory = memory_info.total_memory;
                 
-                terminal_writestring("📊 Memoria básica: ");
+                terminal_writestring("Memoria básica: ");
                 print_dec(low_memory / 1024);
                 terminal_writestring("KB baja + ");
                 print_dec(high_memory / 1024);
@@ -67,11 +78,13 @@ void memory_detect(uint64_t multiboot_info) {
             
             case MULTIBOOT_TAG_TYPE_MMAP: {
                 struct multiboot_tag_mmap* mmap = (struct multiboot_tag_mmap*)tag;
-                struct multiboot_mmap_entry* entry = mmap->entries;
+                uint8_t* entry_ptr = (uint8_t*)mmap->entries;
                 
-                terminal_writestring("🗺️  Mapa de memoria detectado:\n");
+                terminal_writestring("Mapa de memoria detectado:\n");
                 
-                while ((uint8_t*)entry < (uint8_t*)tag + tag->size) {
+                while (entry_ptr < (uint8_t*)tag + tag->size) {
+                    struct multiboot_mmap_entry* entry = (struct multiboot_mmap_entry*)entry_ptr;
+                    
                     if (memory_info.count < MEMORY_MAP_SIZE) {
                         memory_info.entries[memory_info.count].base_addr = entry->addr;
                         memory_info.entries[memory_info.count].length = entry->len;
@@ -120,8 +133,7 @@ void memory_detect(uint64_t multiboot_info) {
                         
                         memory_info.count++;
                     }
-                    entry = (struct multiboot_mmap_entry*)
-                        ((uint8_t*)entry + mmap->entry_size);
+                    entry_ptr += mmap->entry_size;
                 }
                 
                 if (memory_info.count >= 5) {
@@ -131,13 +143,38 @@ void memory_detect(uint64_t multiboot_info) {
                 }
                 break;
             }
+            
+            case MULTIBOOT_TAG_TYPE_CMDLINE: {
+                struct multiboot_tag_string* cmdline = (struct multiboot_tag_string*)tag;
+                terminal_writestring("Línea de comandos: ");
+                terminal_writestring(cmdline->string);
+                terminal_writestring("\n");
+                break;
+            }
+            
+            case MULTIBOOT_TAG_TYPE_BOOT_LOADER_NAME: {
+                struct multiboot_tag_string* bootloader = (struct multiboot_tag_string*)tag;
+                terminal_writestring("Bootloader: ");
+                terminal_writestring(bootloader->string);
+                terminal_writestring("\n");
+                break;
+            }
+                
+            default:
+                // Para tipos no manejados específicamente
+                terminal_writestring("Tag tipo 0x");
+                print_hex(tag->type);
+                terminal_writestring(", tamaño ");
+                print_dec(tag->size);
+                terminal_writestring(" bytes\n");
+                break;
         }
         
-        // Siguiente tag (alineado a 8 bytes)
+        // Siguiente tag (alineado a 8 bytes) - COMO EN EL EJEMPLO OFICIAL
         tag = (struct multiboot_tag*)((uint8_t*)tag + ((tag->size + 7) & ~7));
     }
     
-    terminal_writestring("✅ Detección completada: ");
+    terminal_writestring("Detección completada: ");
     print_dec(memory_info.count);
     terminal_writestring(" regiones, ");
     print_dec(memory_info.total_memory / (1024 * 1024));
@@ -150,6 +187,7 @@ void memory_detect(uint64_t multiboot_info) {
 memory_info_t* memory_get_info(void) {
     return &memory_info;
 }
+
 
 // ========== PHYSICAL MEMORY MANAGER (PMM) ==========
 
@@ -164,8 +202,12 @@ static uint64_t find_bitmap_location(uint64_t bitmap_size) {
             
             // Buscar después de 2MB para evitar área del kernel
             if (base < 0x200000) {
-                base = 0x200000;
-                length -= (0x200000 - mem_info->entries[i].base_addr);
+                if (length > (0x200000 - base)) {
+                    base = 0x200000;
+                    length -= (0x200000 - mem_info->entries[i].base_addr);
+                } else {
+                    continue; // Región demasiado baja
+                }
             }
             
             // Verificar si hay espacio suficiente
@@ -237,6 +279,13 @@ void pmm_init(uint64_t memory_base, uint64_t memory_size) {
         }
     }
     
+    // Marcar los primeros frames como usados (kernel)
+    uint64_t kernel_frames = (0x100000 + 0x100000) / PAGE_SIZE; // Kernel ~2MB
+    for (uint64_t i = 0; i < kernel_frames && i < pmm_total_frames; i++) {
+        pmm_bitmap[i / 32] |= (1 << (i % 32));
+        pmm_used_frames++;
+    }
+    
     terminal_writestring("[OK] PMM: ");
     print_dec(pmm_total_frames);
     terminal_writestring(" frames (");
@@ -246,6 +295,59 @@ void pmm_init(uint64_t memory_base, uint64_t memory_size) {
     terminal_writestring("\n");
 }
 
+// Reservar un frame
+uint64_t pmm_alloc_frame(void) {
+    for (uint64_t i = 0; i < pmm_total_frames; i++) {
+        uint64_t index = i / 32;
+        uint32_t bit = i % 32;
+        
+        if (!(pmm_bitmap[index] & (1 << bit))) {
+            // Frame libre encontrado, marcarlo como usado
+            pmm_bitmap[index] |= (1 << bit);
+            pmm_used_frames++;
+            
+            // Devolver dirección física del frame
+            return pmm_memory_base + (i * PAGE_SIZE);
+        }
+    }
+    
+    // No hay frames libres
+    return 0;
+}
+
+// Liberar un frame
+void pmm_free_frame(uint64_t frame) {
+    // Calcular índice del frame
+    uint64_t frame_index = (frame - pmm_memory_base) / PAGE_SIZE;
+    
+    if (frame_index < pmm_total_frames) {
+        uint64_t index = frame_index / 32;
+        uint32_t bit = frame_index % 32;
+        
+        // Verificar que estaba realmente usado
+        if (pmm_bitmap[index] & (1 << bit)) {
+            pmm_bitmap[index] &= ~(1 << bit);
+            pmm_used_frames--;
+        }
+    }
+}
+
+// Obtener memoria libre
+uint64_t pmm_get_free_memory(void) {
+    return (pmm_total_frames - pmm_used_frames) * PAGE_SIZE;
+}
+
+// Obtener memoria total
+uint64_t pmm_get_total_memory(void) {
+    return pmm_total_frames * PAGE_SIZE;
+}
+
+// Obtener memoria usada
+uint64_t pmm_get_used_memory(void) {
+    return pmm_used_frames * PAGE_SIZE;
+}
+
+// Imprimir información de memoria
 void memory_print_info(void) {
     memory_info_t* mem_info = memory_get_info();
     
@@ -318,61 +420,6 @@ void memory_print_info(void) {
         terminal_writestring("%\n");
     }
 }
-
-
-// Reservar un frame
-uint64_t pmm_alloc_frame(void) {
-    for (uint64_t i = 0; i < pmm_total_frames; i++) {
-        uint64_t index = i / 32;
-        uint32_t bit = i % 32;
-        
-        if (!(pmm_bitmap[index] & (1 << bit))) {
-            // Frame libre encontrado, marcarlo como usado
-            pmm_bitmap[index] |= (1 << bit);
-            pmm_used_frames++;
-            
-            // Devolver dirección física del frame
-            return pmm_memory_base + (i * PAGE_SIZE);
-        }
-    }
-    
-    // No hay frames libres
-    return 0;
-}
-
-// Liberar un frame
-void pmm_free_frame(uint64_t frame) {
-    // Calcular índice del frame
-    uint64_t frame_index = (frame - pmm_memory_base) / PAGE_SIZE;
-    
-    if (frame_index < pmm_total_frames) {
-        uint64_t index = frame_index / 32;
-        uint32_t bit = frame_index % 32;
-        
-        // Verificar que estaba realmente usado
-        if (pmm_bitmap[index] & (1 << bit)) {
-            pmm_bitmap[index] &= ~(1 << bit);
-            pmm_used_frames--;
-        }
-    }
-}
-
-// Obtener memoria libre
-uint64_t pmm_get_free_memory(void) {
-    return (pmm_total_frames - pmm_used_frames) * PAGE_SIZE;
-}
-
-// Obtener memoria total
-uint64_t pmm_get_total_memory(void) {
-    return pmm_total_frames * PAGE_SIZE;
-}
-
-// Obtener memoria usada
-uint64_t pmm_get_used_memory(void) {
-    return pmm_used_frames * PAGE_SIZE;
-}
-
-// ========== COMANDO SHELL ==========
 
 // Comando: meminfo
 void cmd_meminfo(int argc, char** argv) {

@@ -6,6 +6,7 @@
 #include "string.h"
 #include "panic.h"
 #include "memory.h"
+#include "kmalloc.h"
 
 // Buffer para entrada del usuario
 static char shell_buffer[SHELL_BUFFER_SIZE];
@@ -28,7 +29,8 @@ static shell_command_t shell_commands[] = {
     {"halt",    "Detiene el sistema de forma segura (apagar)", shell_cmd_halt},
     {"history", "Muestra el historial de comandos recientes", shell_cmd_history},
     {"reboot",  "Reinicia el sistema", shell_cmd_reboot},
-    {"meminfo", "Muestra información detallada de la memoria", shell_cmd_meminfo}, // NUEVO
+    {"meminfo", "Muestra información detallada de la memoria", shell_cmd_meminfo},
+    {"heapinfo", "Muestra información del heap del kernel", shell_cmd_heapinfo},
     {NULL, NULL, NULL} // Marcador de fin
 };
 
@@ -483,4 +485,15 @@ void shell_cmd_reboot(int argc, char** argv) {
 void shell_cmd_meminfo(int argc, char** argv) {
     (void)argc; (void)argv;
     cmd_meminfo(argc, argv);  // Llama a la función en memory.c
+}
+
+/**
+ * COMANDO: heapinfo
+ * DESCRIPCIÓN: Muestra información del heap del kernel
+ * USO: heapinfo
+ */
+
+void shell_cmd_heapinfo(int argc, char** argv) {
+    (void)argc; (void)argv;
+    cmd_heapinfo(argc, argv);
 }

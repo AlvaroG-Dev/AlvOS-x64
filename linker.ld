@@ -1,31 +1,39 @@
+/* linker.ld - Linker script para kernel 64-bit mejorado */
 ENTRY(start)
 
 SECTIONS
 {
+    /* El kernel se carga en 1MB - dirección física */
     . = 1M;
 
-    .boot :
+    /* Sección multiboot PRIMERO - crítica para GRUB */
+    .multiboot : ALIGN(4K)
     {
         *(.multiboot)
     }
 
-    .text :
+    .text : ALIGN(4K)
     {
         *(.text)
     }
 
-    .rodata :
+    .rodata : ALIGN(4K)
     {
         *(.rodata)
     }
 
-    .data :
+    .data : ALIGN(4K)
     {
         *(.data)
     }
 
-    .bss :
+    .bss : ALIGN(4K)
     {
+        *(COMMON)
         *(.bss)
+        *(.stack)
     }
+
+    /* Definir símbolos para el kernel */
+    _kernel_start = .;
 }

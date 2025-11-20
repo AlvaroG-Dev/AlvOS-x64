@@ -1,4 +1,4 @@
-// kernel.c - Kernel principal con gestión de memoria real
+// kernel.c - Kernel principal con gestión de memoria real CORREGIDO
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -11,7 +11,8 @@
 #include "test_suite.h"
 #include "shell.h"
 #include "memory.h"
-#include "multiboot.h"
+#include "multiboot_header.h"
+#include "kmalloc.h"
 
 // Estructura de la IDT
 struct idt_entry {
@@ -66,6 +67,105 @@ void idt_install(void) {
     idt_load((uint64_t)&idtp);
 }
 
+// Función para debug de información Multiboot2
+static void debug_multiboot_info(uint32_t magic, uint32_t multiboot_info) {
+    terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_BROWN, VGA_COLOR_BLACK));
+    terminal_writestring("DEBUG MULTIBOOT2:\n");
+    
+    // Verificar magic number primero
+    terminal_writestring("   Magic recibido: 0x");
+    print_hex(magic);
+    terminal_writestring(" (esperado: 0x");
+    print_hex(MULTIBOOT2_BOOTLOADER_MAGIC);
+    terminal_writestring(")\n");
+    
+    if (magic != MULTIBOOT2_BOOTLOADER_MAGIC) {
+        terminal_writestring("Magic number incorrecto!\n");
+        return;
+    }
+    
+    if (multiboot_info == 0) {
+        terminal_writestring("   multiboot_info es NULL\n");
+        return;
+    }
+    
+    // Verificar alineación (debe ser múltiplo de 8)
+    if (multiboot_info & 7) {
+        terminal_writestring("Puntero no alineado: 0x");
+        print_hex(multiboot_info);
+        terminal_writestring("\n");
+        return;
+    }
+    
+    // El puntero es de 32-bit, lo convertimos para uso en 64-bit
+    uint32_t* mbi_ptr = (uint32_t*)multiboot_info;
+    
+    // Tamaño total
+    uint32_t total_size = mbi_ptr[0];
+    terminal_writestring("   Tamaño total: ");
+    print_dec(total_size);
+    terminal_writestring(" bytes\n");
+    
+    // Revisar tags (como en el ejemplo oficial)
+    struct multiboot_tag* tag = (struct multiboot_tag*)(multiboot_info + 8);
+    int tag_count = 0;
+    
+    terminal_writestring("   Tags encontrados:\n");
+    
+    while (tag->type != MULTIBOOT_TAG_TYPE_END && 
+           (uint8_t*)tag < (uint8_t*)multiboot_info + total_size) {
+        
+        terminal_writestring("      Tag ");
+        print_dec(tag_count);
+        terminal_writestring(": tipo=0x");
+        print_hex(tag->type);
+        terminal_writestring(", tamaño=");
+        print_dec(tag->size);
+        terminal_writestring("\n");
+        
+        switch (tag->type) {
+            case MULTIBOOT_TAG_TYPE_CMDLINE: {
+                struct multiboot_tag_string* cmdline = (struct multiboot_tag_string*)tag;
+                terminal_writestring("         -> CMDLINE: ");
+                terminal_writestring(cmdline->string);
+                terminal_writestring("\n");
+                break;
+            }
+            case MULTIBOOT_TAG_TYPE_BOOT_LOADER_NAME: {
+                struct multiboot_tag_string* bootloader = (struct multiboot_tag_string*)tag;
+                terminal_writestring("         -> BOOTLOADER: ");
+                terminal_writestring(bootloader->string);
+                terminal_writestring("\n");
+                break;
+            }
+            case MULTIBOOT_TAG_TYPE_BASIC_MEMINFO: {
+                struct multiboot_tag_basic_meminfo* meminfo = 
+                    (struct multiboot_tag_basic_meminfo*)tag;
+                terminal_writestring("         -> BASIC_MEMINFO: ");
+                print_dec(meminfo->mem_lower);
+                terminal_writestring("KB baja, ");
+                print_dec(meminfo->mem_upper);
+                terminal_writestring("KB alta\n");
+                break;
+            }
+            case MULTIBOOT_TAG_TYPE_MMAP:
+                terminal_writestring("         -> MMAP (mapa de memoria)\n");
+                break;
+            default:
+                terminal_writestring("         -> Tipo desconocido\n");
+                break;
+        }
+        
+        tag_count++;
+        // Siguiente tag (alineado a 8 bytes) - COMO EN EL EJEMPLO OFICIAL
+        tag = (struct multiboot_tag*)((uint8_t*)tag + ((tag->size + 7) & ~7));
+    }
+    
+    terminal_writestring("   Total tags: ");
+    print_dec(tag_count);
+    terminal_writestring("\n");
+}
+
 // Función para encontrar la primera región de memoria disponible grande
 static uint64_t find_available_memory_region(uint64_t* size) {
     memory_info_t* mem_info = memory_get_info();
@@ -85,7 +185,7 @@ static uint64_t find_available_memory_region(uint64_t* size) {
     return largest_base;
 }
 
-void kernel_main(uint64_t multiboot_info) {
+void kernel_main(uint32_t magic, uint32_t multiboot_info) {
     // Inicializar terminal
     terminal_initialize();
     
@@ -93,10 +193,29 @@ void kernel_main(uint64_t multiboot_info) {
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK));
     terminal_writestring("===================================\n");
     terminal_writestring("  Sistema Operativo 64-bit v0.4\n");
-    terminal_writestring("    Gestión de Memoria Real\n");
+    terminal_writestring("    Multiboot2 Corregido\n");
     terminal_writestring("===================================\n\n");
     
-    // Inicializar subsistemas básicos primero
+    // Debuggear información Multiboot2 primero
+    debug_multiboot_info(magic, multiboot_info);
+    terminal_writestring("\n");
+    
+    // Verificar magic number (como en el ejemplo oficial)
+    if (magic != MULTIBOOT2_BOOTLOADER_MAGIC) {
+        terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK));
+        terminal_writestring("Error: Magic number incorrecto: 0x");
+        print_hex(magic);
+        terminal_writestring("\n");
+        return;
+    }
+    
+    if (multiboot_info & 7) {
+        terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK));
+        terminal_writestring("Error: Puntero Multiboot no alineado\n");
+        return;
+    }
+    
+    // Inicializar subsistemas básicos
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK));
     terminal_writestring("[OK] Modo largo activado (64-bit)\n");
     terminal_writestring("[OK] Paginacion configurada\n");
@@ -127,7 +246,8 @@ void kernel_main(uint64_t multiboot_info) {
     
     // Inicializar PMM con memoria real
     pmm_init(memory_base, memory_size);
-    
+    heap_init();
+    terminal_writestring("[OK] Heap del kernel inicializado\n");
     // Inicializar IDT
     idt_install();
     terminal_writestring("[OK] IDT inicializada\n");

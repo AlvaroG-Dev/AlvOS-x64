@@ -208,29 +208,29 @@ Sistema mínimo de memoria para poder usar `malloc()` en el kernel.
 
 ### 6.1 Detección de Memoria
 
-- [ ]  Leer información de Multiboot2
-- [ ]  Parsear mmap (memory map)
-- [ ]  Imprimir cantidad de RAM disponible
-- [ ]  Comando shell: `meminfo`
+- [x]  Leer información de Multiboot2
+- [x]  Parsear mmap (memory map)
+- [x]  Imprimir cantidad de RAM disponible
+- [x]  Comando shell: `meminfo`
 
 ### 6.2 Physical Memory Manager (PMM) Simple
 
 **Solo lo básico - sin optimizaciones:**
 
-- [ ]  Bitmap allocator (1 bit = 1 frame de 4KB)
-- [ ]  `pmm_init()` - Inicializar bitmap
-- [ ]  `pmm_alloc_frame()` - Reservar 1 frame
-- [ ]  `pmm_free_frame()` - Liberar 1 frame
-- [ ]  Marcar kernel como usado
+- [x]  Bitmap allocator (1 bit = 1 frame de 4KB)
+- [x]  `pmm_init()` - Inicializar bitmap
+- [x]  `pmm_alloc_frame()` - Reservar 1 frame
+- [x]  `pmm_free_frame()` - Liberar 1 frame
+- [x]  Marcar kernel como usado
 
 ### 6.3 Heap del Kernel (kmalloc simple)
 
 **Implementación básica - sin free por ahora:**
 
-- [ ]  Área de heap de tamaño fijo (ej: 1MB)
-- [ ]  `kmalloc(size)` - Allocator lineal simple
-- [ ]  Alineación a 4 bytes
-- [ ]  Comando shell: `heapinfo`
+- [x]  Área de heap de tamaño fijo (ej: 1MB)
+- [x]  `kmalloc(size)` - Allocator lineal simple
+- [x]  Alineación a 4 bytes
+- [x]  Comando shell: `heapinfo`
 
 **NO implementar aún:**
 
@@ -241,10 +241,10 @@ Sistema mínimo de memoria para poder usar `malloc()` en el kernel.
 
 ### 6.4 Testing de Memoria
 
-- [ ]  Allocar 100 bloques pequeños
-- [ ]  Verificar que no se solapan
-- [ ]  Llenar heap hasta el límite
-- [ ]  Verificar que falla apropiadamente
+- [x]  Allocar 100 bloques pequeños
+- [x]  Verificar que no se solapan
+- [x]  Llenar heap hasta el límite
+- [x]  Verificar que falla apropiadamente
 
 **Entregable:** Sistema básico de memoria funcional.
 

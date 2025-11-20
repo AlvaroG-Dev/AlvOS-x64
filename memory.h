@@ -35,7 +35,7 @@ uint64_t pmm_get_total_memory(void);
 uint64_t pmm_get_used_memory(void);
 
 // Detección de memoria
-void memory_detect(uint64_t multiboot_info);
+void memory_detect(uint32_t multiboot_info);
 void memory_print_info(void);
 memory_info_t* memory_get_info(void);
 

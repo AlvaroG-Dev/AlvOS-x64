@@ -9,7 +9,8 @@ LDFLAGS = -n -T linker.ld
 
 # Archivos objeto
 ASM_OBJS = boot.o idt.o interrupts.o
-C_OBJS = kernel.o terminal.o isr.o timer.o keyboard.o panic.o test_suite.o string.o exception_test.o shell.o memory.o
+C_OBJS = kernel.o terminal.o isr.o timer.o keyboard.o panic.o test_suite.o string.o \
+		exception_test.o shell.o memory.o kmalloc.o memory_tests.o
 OBJS = $(ASM_OBJS) $(C_OBJS)
 
 all: os.iso
@@ -28,7 +29,7 @@ interrupts.o: interrupts.asm
 	$(AS) $(ASFLAGS) -o $@ $<
 
 # Reglas para archivos C
-kernel.o: kernel.c terminal.h isr.h timer.h
+kernel.o: kernel.c terminal.h isr.h timer.h multiboot_header.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 terminal.o: terminal.c terminal.h
@@ -55,10 +56,16 @@ string.o: string.c string.h
 exception_test.o: exception_test.c exception_test.h terminal.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-shell.o: shell.c shell.h terminal.h panic.h string.h timer.h keyboard.h
+shell.o: shell.c shell.h terminal.h panic.h string.h timer.h keyboard.h memory_tests.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-memory.o: memory.c memory.h terminal.h multiboot.h string.h
+memory.o: memory.c memory.h terminal.h multiboot_header.h string.h
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+kmalloc.o: kmalloc.c kmalloc.h memory.h terminal.h string.h
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+memory_tests.o: memory_tests.c memory_tests.h memory.h terminal.h kmalloc.h string.h test_suite.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 # Crear imagen ISO booteable
@@ -69,7 +76,6 @@ os.iso: os.bin
 	echo 'set default=0' >> isodir/boot/grub/grub.cfg
 	echo 'menuentry "MyOS" {' >> isodir/boot/grub/grub.cfg
 	echo '    multiboot2 /boot/os.bin' >> isodir/boot/grub/grub.cfg
-	echo '    boot' >> isodir/boot/grub/grub.cfg
 	echo '}' >> isodir/boot/grub/grub.cfg
 	grub-mkrescue -o os.iso isodir
 

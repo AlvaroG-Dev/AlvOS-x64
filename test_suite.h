@@ -3,7 +3,6 @@
 #define TEST_SUITE_H
 
 #include <stdint.h>
-#include "exception_test.h"
 
 // Ejecutar la suite completa de tests
 void run_test_suite(void);

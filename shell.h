@@ -34,6 +34,7 @@ void shell_cmd_uptime(int argc, char** argv);
 void shell_cmd_halt(int argc, char** argv);
 void shell_cmd_history(int argc, char** argv);
 void shell_cmd_reboot(int argc, char** argv);
-void shell_cmd_meminfo(int argc, char** argv);  // NUEVO
+void shell_cmd_meminfo(int argc, char** argv);
+void shell_cmd_heapinfo(int argc, char** argv);
 
 #endif

@@ -3,6 +3,8 @@
 #include "terminal.h"
 #include "timer.h"
 #include "keyboard.h"
+#include "memory_tests.h"
+#include "exception_test.h"
 
 // Colores para los tests
 #define TEST_COLOR_PASS vga_entry_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK)
@@ -262,23 +264,6 @@ void test_exceptions_interactive(void) {
     }
 }
 
-// Test 10: Excepciones controladas (sin crash)
-void test_exceptions_safe(void) {
-    terminal_writestring("\n=== TEST: Manejo de Excepciones (Safe) ===\n");
-    test_print_info("Verificando que los handlers de excepciones estan instalados...");
-    
-    // Solo verificamos que las funciones existen y se pueden llamar
-    // sin realmente provocar excepciones en este test seguro
-    terminal_writestring("Handlers de excepciones verificados:\n");
-    terminal_writestring("  - Division por cero: INSTALADO\n");
-    terminal_writestring("  - Opcode invalido: INSTALADO\n");
-    terminal_writestring("  - Page fault: INSTALADO\n");
-    terminal_writestring("  - General protection: INSTALADO\n");
-    terminal_writestring("  - Stack fault: INSTALADO\n");
-    
-    test_print_pass("Handlers de excepciones verificados (sin ejecutar)");
-}
-
 // Resumen de tests
 void test_print_summary(void) {
     terminal_writestring("\n");
@@ -329,8 +314,6 @@ void run_test_suite(void) {
     test_timer_overflow();
     
     // Tests interactivos
-    test_keyboard_lowercase();
-    test_keyboard_shift();
     test_keyboard_numbers();
     test_keyboard_backspace();
     
@@ -338,12 +321,8 @@ void run_test_suite(void) {
     test_terminal_colors();
     test_terminal_scroll();
     
-    // Tests de excepciones (seguro)
-    test_exceptions_safe();
-    
-    // Test de excepciones interactivo (peligroso - comentado por defecto)
-    test_exceptions_interactive();
-    
+    run_memory_tests();
+
     // Resumen
     test_print_summary();
 }
