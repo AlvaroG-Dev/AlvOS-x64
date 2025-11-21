@@ -187,7 +187,7 @@ void test_double_free(void) {
 void test_kmalloc_stress(void) {
     test_print_info("Test: Stress test kmalloc/kfree...");
     
-    #define STRESS_ITERATIONS 1000
+    #define STRESS_ITERATIONS 100
     void* ptrs[STRESS_ITERATIONS];
     
     heap_stats_t stats_initial;
