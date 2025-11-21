@@ -20,6 +20,7 @@ void test_pmm_no_overlap(void);
 
 /* Ejecuta todos los tests de memoria */
 void run_memory_tests(void);
+void shell_cmd_memtest(int argc, char** argv);
 
 #ifdef __cplusplus
 }

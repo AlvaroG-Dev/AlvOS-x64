@@ -36,5 +36,6 @@ void shell_cmd_history(int argc, char** argv);
 void shell_cmd_reboot(int argc, char** argv);
 void shell_cmd_meminfo(int argc, char** argv);
 void shell_cmd_heapinfo(int argc, char** argv);
+void shell_cmd_kmalloc(int argc, char** argv);
 
 #endif

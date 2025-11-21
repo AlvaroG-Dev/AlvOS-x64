@@ -193,7 +193,7 @@ void kernel_main(uint32_t magic, uint32_t multiboot_info) {
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK));
     terminal_writestring("===================================\n");
     terminal_writestring("  Sistema Operativo 64-bit v0.4\n");
-    terminal_writestring("    Multiboot2 Corregido\n");
+    terminal_writestring("    Multiboot2\n");
     terminal_writestring("===================================\n\n");
     
     // Debuggear información Multiboot2 primero
@@ -244,11 +244,6 @@ void kernel_main(uint32_t magic, uint32_t multiboot_info) {
         terminal_writestring(" MB disponible\n");
     }
     
-    // Inicializar PMM con memoria real
-    pmm_init(memory_base, memory_size);
-    
-    heap_init();
-    terminal_writestring("[OK] Heap del kernel inicializado\n");
     // Inicializar IDT
     idt_install();
     terminal_writestring("[OK] IDT inicializada\n");
@@ -259,6 +254,12 @@ void kernel_main(uint32_t magic, uint32_t multiboot_info) {
     terminal_writestring("[OK] IRQs instalados (hardware)\n");
     terminal_writestring("[OK] PIC remapeado\n");
     terminal_writestring("[OK] Interrupciones habilitadas\n");
+
+    // Inicializar PMM con memoria real
+    pmm_init(memory_base, memory_size);
+    
+    heap_init();
+    terminal_writestring("[OK] Heap del kernel inicializado\n");
     
     // Inicializar timer (100 Hz = 100 ticks por segundo)
     timer_install(100);
@@ -268,13 +269,9 @@ void kernel_main(uint32_t magic, uint32_t multiboot_info) {
     keyboard_install();
     terminal_writestring("[OK] Teclado PS/2 inicializado\n");
     
-    kmalloc(1024); // Prueba rápida de kmalloc
     // Inicializar shell
     shell_init();
     
-    // Mostrar información de memoria
-    terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK));
-    terminal_writestring("\n💾 RESUMEN DE MEMORIA:\n");
     memory_print_info();
     
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
@@ -286,7 +283,7 @@ void kernel_main(uint32_t magic, uint32_t multiboot_info) {
     
     if (response == 's' || response == 'S') {
         run_test_suite();
-        terminal_writestring("\nTests completados. Iniciando shell...\n\n");
+        terminal_writestring("\nTests completados.\n\n");
         shell_run();
     } else {
         shell_run();

@@ -7,6 +7,7 @@
 #include "panic.h"
 #include "memory.h"
 #include "kmalloc.h"
+#include "memory_tests.h"
 
 // Buffer para entrada del usuario
 static char shell_buffer[SHELL_BUFFER_SIZE];
@@ -31,6 +32,8 @@ static shell_command_t shell_commands[] = {
     {"reboot",  "Reinicia el sistema", shell_cmd_reboot},
     {"meminfo", "Muestra información detallada de la memoria", shell_cmd_meminfo},
     {"heapinfo", "Muestra información del heap del kernel", shell_cmd_heapinfo},
+    {"memtest", "Ejecutar suite completa de tests de memoria", shell_cmd_memtest},
+    {"kmalloc", "Alloc memory", shell_cmd_kmalloc},
     {NULL, NULL, NULL} // Marcador de fin
 };
 
@@ -497,3 +500,20 @@ void shell_cmd_heapinfo(int argc, char** argv) {
     (void)argc; (void)argv;
     cmd_heapinfo(argc, argv);
 }
+
+
+/**
+ * COMANDO: kmalloc
+ * DESCRIPCIÓN: Alloc memory
+ * USO: kmalloc
+ */
+
+void shell_cmd_kmalloc(int argc, char** argv) {
+    (void)argc; (void)argv;
+    void* ptr = kmalloc(1048576); // Alloc 1KB
+    terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK));
+    terminal_writestring("Allocated memory at address: 0x");
+    print_hex((uint64_t)ptr);
+    terminal_putchar('\n');
+}
+

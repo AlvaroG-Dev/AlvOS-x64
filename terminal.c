@@ -65,6 +65,23 @@ void terminal_putchar(char c) {
     }
 }
 
+// Dibujar carácter de sombreado ░ en posición específica
+void terminal_draw_shadow_char(size_t x, size_t y, vga_color fg_color, vga_color bg_color) {
+    if (x >= VGA_WIDTH || y >= VGA_HEIGHT) return;
+    
+    uint8_t color = vga_entry_color(fg_color, bg_color);
+    terminal_putentryat(SHADOW_CHAR, color, x, y);
+}
+
+// Dibujar un patrón de sombreado
+void terminal_draw_shadow_pattern(size_t start_x, size_t start_y, size_t width, size_t height, vga_color fg_color, vga_color bg_color) {
+    for (size_t y = start_y; y < start_y + height && y < VGA_HEIGHT; y++) {
+        for (size_t x = start_x; x < start_x + width && x < VGA_WIDTH; x++) {
+            terminal_draw_shadow_char(x, y, fg_color, bg_color);
+        }
+    }
+}
+
 void terminal_write(const char* data, size_t size) {
     for (size_t i = 0; i < size; i++)
         terminal_putchar(data[i]);
@@ -106,5 +123,69 @@ void print_dec(uint64_t value) {
     // Imprimir al revés
     while (i > 0) {
         terminal_putchar(buffer[--i]);
+    }
+}
+
+// Dibujar un carácter de caja en posición específica
+void terminal_draw_box_char(size_t x, size_t y, uint8_t box_char, vga_color fg_color, vga_color bg_color) {
+    if (x >= VGA_WIDTH || y >= VGA_HEIGHT) return;
+    
+    uint8_t color = vga_entry_color(fg_color, bg_color);
+    terminal_putentryat(box_char, color, x, y);
+}
+
+// Dibujar una caja simple
+void terminal_draw_single_box(size_t x, size_t y, size_t width, size_t height, vga_color fg_color, vga_color bg_color) {
+    // Esquinas
+    terminal_draw_box_char(x, y, BOX_SINGLE_TOP_LEFT, fg_color, bg_color);
+    terminal_draw_box_char(x + width - 1, y, BOX_SINGLE_TOP_RIGHT, fg_color, bg_color);
+    terminal_draw_box_char(x, y + height - 1, BOX_SINGLE_BOTTOM_LEFT, fg_color, bg_color);
+    terminal_draw_box_char(x + width - 1, y + height - 1, BOX_SINGLE_BOTTOM_RIGHT, fg_color, bg_color);
+    
+    // Bordes horizontales
+    for (size_t i = x + 1; i < x + width - 1; i++) {
+        terminal_draw_box_char(i, y, BOX_SINGLE_HORIZONTAL, fg_color, bg_color);
+        terminal_draw_box_char(i, y + height - 1, BOX_SINGLE_HORIZONTAL, fg_color, bg_color);
+    }
+    
+    // Bordes verticales
+    for (size_t j = y + 1; j < y + height - 1; j++) {
+        terminal_draw_box_char(x, j, BOX_SINGLE_VERTICAL, fg_color, bg_color);
+        terminal_draw_box_char(x + width - 1, j, BOX_SINGLE_VERTICAL, fg_color, bg_color);
+    }
+}
+
+// Dibujar una caja doble (como la que muestras)
+void terminal_draw_double_box(size_t x, size_t y, size_t width, size_t height, vga_color fg_color, vga_color bg_color) {
+    // Esquinas
+    terminal_draw_box_char(x, y, BOX_DOUBLE_TOP_LEFT, fg_color, bg_color);
+    terminal_draw_box_char(x + width - 1, y, BOX_DOUBLE_TOP_RIGHT, fg_color, bg_color);
+    terminal_draw_box_char(x, y + height - 1, BOX_DOUBLE_BOTTOM_LEFT, fg_color, bg_color);
+    terminal_draw_box_char(x + width - 1, y + height - 1, BOX_DOUBLE_BOTTOM_RIGHT, fg_color, bg_color);
+    
+    // Bordes horizontales
+    for (size_t i = x + 1; i < x + width - 1; i++) {
+        terminal_draw_box_char(i, y, BOX_DOUBLE_HORIZONTAL, fg_color, bg_color);
+        terminal_draw_box_char(i, y + height - 1, BOX_DOUBLE_HORIZONTAL, fg_color, bg_color);
+    }
+    
+    // Bordes verticales
+    for (size_t j = y + 1; j < y + height - 1; j++) {
+        terminal_draw_box_char(x, j, BOX_DOUBLE_VERTICAL, fg_color, bg_color);
+        terminal_draw_box_char(x + width - 1, j, BOX_DOUBLE_VERTICAL, fg_color, bg_color);
+    }
+}
+
+// Dibujar línea horizontal doble
+void terminal_draw_double_horizontal_line(size_t x, size_t y, size_t length, vga_color fg_color, vga_color bg_color) {
+    for (size_t i = 0; i < length && (x + i) < VGA_WIDTH; i++) {
+        terminal_draw_box_char(x + i, y, BOX_DOUBLE_HORIZONTAL, fg_color, bg_color);
+    }
+}
+
+// Dibujar línea vertical doble
+void terminal_draw_double_vertical_line(size_t x, size_t y, size_t length, vga_color fg_color, vga_color bg_color) {
+    for (size_t i = 0; i < length && (y + i) < VGA_HEIGHT; i++) {
+        terminal_draw_box_char(x, y + i, BOX_DOUBLE_VERTICAL, fg_color, bg_color);
     }
 }
